@@ -1,0 +1,8 @@
+[configuration]
+
+entry_symbol = "ime_probe_init"
+compatibility_minimum = "4.1"
+
+[libraries]
+
+windows.x86_64 = "res://bin/ime_probe.dll"
