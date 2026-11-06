@@ -7,7 +7,8 @@
 // IME_PROBE_LOG:      where to append; "ime_probe_native.log" in the working folder by default.
 // IME_PROBE_SELFTEST: "1" posts one WM_CHAR 'A' once hooked, to show the hook passes input on. "2" plays, a second
 //                         later, what the new Microsoft IME sends between two syllables: a committed letter, then the
-//                         next composition's start, all before Godot reads its key queue.
+//                         next composition's start, all before Godot reads its key queue. "3" plays the same with
+//                         a pause between the letter and the start, so Godot reads its queue in between.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <imm.h>
@@ -31,7 +32,9 @@ static BOOL taking = FALSE;
 static BOOL fixing = FALSE;
 // The last key message handed to Godot was a character, so it lies at the end of Godot's key queue.
 static BOOL char_last = FALSE;
+static BOOL selftest_paused = FALSE;
 #define SELFTEST_TIMER 0x1109
+#define SELFTEST_LATER_TIMER 0x110A
 
 static void stamp(void) {
 	FILETIME now;
@@ -101,6 +104,13 @@ static void log_state(const char *why) {
 static LRESULT CALLBACK probe_proc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) {
 	switch (message) {
 		case WM_TIMER:
+			if (wparam == SELFTEST_LATER_TIMER) {
+				KillTimer(hwnd, SELFTEST_LATER_TIMER);
+				SendMessageW(hwnd, WM_IME_STARTCOMPOSITION, 0, 0);
+				SendMessageW(hwnd, WM_IME_ENDCOMPOSITION, 0, 0);
+				SendMessageW(hwnd, WM_CHAR, 0xB098, 1);
+				return 0;
+			}
 			if (wparam == SELFTEST_TIMER) {
 				KillTimer(hwnd, SELFTEST_TIMER);
 				stamp();
@@ -109,6 +119,10 @@ static LRESULT CALLBACK probe_proc(HWND hwnd, UINT message, WPARAM wparam, LPARA
 				SendMessageW(hwnd, WM_IME_STARTCOMPOSITION, 0, 0);
 				SendMessageW(hwnd, WM_IME_ENDCOMPOSITION, 0, 0);
 				SendMessageW(hwnd, WM_CHAR, 0xAC00, 1);
+				if (selftest_paused) {
+					SetTimer(hwnd, SELFTEST_LATER_TIMER, 400, NULL);
+					return 0;
+				}
 				SendMessageW(hwnd, WM_IME_STARTCOMPOSITION, 0, 0);
 				SendMessageW(hwnd, WM_IME_ENDCOMPOSITION, 0, 0);
 				SendMessageW(hwnd, WM_CHAR, 0xB098, 1);
@@ -204,7 +218,10 @@ static void hook(void *userdata, int level) {
 	log_state("hook");
 	const DWORD selftest = GetEnvironmentVariableA("IME_PROBE_SELFTEST", value, sizeof(value));
 	if (selftest == 1 && value[0] == '1') PostMessageW(window, WM_CHAR, 'A', 1);
-	if (selftest == 1 && value[0] == '2') SetTimer(window, SELFTEST_TIMER, 1000, NULL);
+	if (selftest == 1 && (value[0] == '2' || value[0] == '3')) {
+		selftest_paused = value[0] == '3';
+		SetTimer(window, SELFTEST_TIMER, 1000, NULL);
+	}
 }
 
 static void unhook(void *userdata, int level) {

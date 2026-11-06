@@ -46,6 +46,10 @@ func _ready() -> void:
 		_log.flush()
 		get_tree().quit()
 
+## `--slow` holds each frame, so more messages come in between two reads of Godot's key queue.
+func _process(_delta: float) -> void:
+	if "--slow" in OS.get_cmdline_user_args(): OS.delay_msec(120)
+
 func _notification(what: int) -> void:
 	if what != MainLoop.NOTIFICATION_OS_IME_UPDATE or _field == null: return
 	var ime := DisplayServer.ime_get_text()
