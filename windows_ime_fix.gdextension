@@ -1,0 +1,6 @@
+[configuration]
+entry_symbol = "ime_fix_init"
+compatibility_minimum = "4.7.2"
+
+[libraries]
+windows.x86_64 = "./windows_ime_fix.dll"

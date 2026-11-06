@@ -11,7 +11,7 @@
 //                         a pause between the letter and the start, so Godot reads its queue in between.
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
-#include <imm.h>
+#include "ime_guard.h"
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -136,8 +136,8 @@ static LRESULT CALLBACK probe_proc(HWND hwnd, UINT message, WPARAM wparam, LPARA
 			if (taking) return 0;
 			// Godot 4.7.2 drops the last queued key event when a composition starts, meaning the key that started it. The new
 			// IME commits a syllable and starts the next in one go, so that last event is the committed letter. A blank
-			// character in front of it is dropped instead. Godot ignores it either way if nothing takes it.
-			if (fixing && char_last) CallWindowProcW(godot_proc, hwnd, WM_CHAR, 0, 0);
+			// character in front of it is dropped instead while the window's IME is active.
+			if (fixing && char_last) protect_committed_char(hwnd, godot_proc);
 			char_last = FALSE;
 			break;
 		case WM_IME_COMPOSITION:

@@ -7,5 +7,6 @@ if not exist build mkdir build
 if not exist project\bin mkdir project\bin
 cl /nologo /utf-8 /W4 /O1 /MT /LD /Fobuild\ /Febuild\ime_probe.dll src\ime_probe.c user32.lib imm32.lib || exit /b 1
 copy /y build\ime_probe.dll project\bin\ime_probe.dll >nul || exit /b 1
-cl /nologo /utf-8 /W4 /O1 /MT /LD /Fobuild\ /Febuild\windows_ime_fix.dll src\ime_fix.c user32.lib || exit /b 1
+cl /nologo /utf-8 /W4 /O1 /MT /LD /Fobuild\ /Febuild\windows_ime_fix.dll src\ime_fix.c user32.lib imm32.lib || exit /b 1
+copy /y windows_ime_fix.gdextension build\ >nul || exit /b 1
 echo IME_PROBE_BUILD_OK

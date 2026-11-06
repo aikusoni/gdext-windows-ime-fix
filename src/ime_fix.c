@@ -5,6 +5,7 @@
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <stdint.h>
+#include "ime_guard.h"
 
 // The stable part of Godot's gdextension_interface.h, written out so that no header has to be generated.
 typedef struct {
@@ -17,13 +18,13 @@ enum { LEVEL_SCENE = 2 };
 
 static HWND window = NULL;
 static WNDPROC godot_proc = NULL;
-// The last key message handed to Godot was a character, so it lies at the end of Godot's key queue.
+// The last key message was a character. Godot may still have it queued.
 static BOOL char_last = FALSE;
 
 static LRESULT CALLBACK fix_proc(HWND hwnd, UINT message, WPARAM wparam, LPARAM lparam) {
 	switch (message) {
 		case WM_IME_STARTCOMPOSITION:
-			if (char_last) CallWindowProcW(godot_proc, hwnd, WM_CHAR, 0, 0);
+			if (char_last) protect_committed_char(hwnd, godot_proc);
 			char_last = FALSE;
 			break;
 		case WM_CHAR:
