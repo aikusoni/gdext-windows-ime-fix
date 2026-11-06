@@ -3,6 +3,14 @@ name: Release Windows extension
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing version tag to publish (e.g. v0.1.0)
+        required: true
+        type: string
+
+concurrency: release-${{ inputs.tag || github.ref_name }}
 
 permissions:
   contents: write
@@ -11,9 +19,12 @@ jobs:
   release:
     runs-on: windows-2022
     timeout-minutes: 15
+    env:
+      RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: refs/tags/${{ inputs.tag || github.ref_name }}
           persist-credentials: false
 
       - name: Build Windows x86-64 DLL
@@ -43,4 +54,4 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         shell: pwsh
         run: |
-          gh release create $env:GITHUB_REF_NAME build/windows-ime-fix-x86_64.zip --verify-tag --title "Windows IME Fix $env:GITHUB_REF_NAME" --notes "Windows x86-64용 Godot 확장입니다. ZIP을 풀고 addons 폴더를 게임의 project.godot 옆에 복사한 뒤 프로젝트를 다시 여세요."
+          gh release create $env:RELEASE_TAG build/windows-ime-fix-x86_64.zip --verify-tag --title "Windows IME Fix $env:RELEASE_TAG" --notes "Windows x86-64용 Godot 확장입니다. ZIP을 풀고 addons 폴더를 게임의 project.godot 옆에 복사한 뒤 프로젝트를 다시 여세요."
