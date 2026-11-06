@@ -4,33 +4,20 @@ Godot 4.7.2 Windows 창에서 새 Microsoft 한국어 입력기로 입력할 때
 
 ## 내 게임에 적용하기
 
-### 1. Windows x86-64용 DLL 빌드
-
-Visual Studio 2019 Community의 **C++를 사용한 데스크톱 개발** 워크로드와 Windows SDK를 설치한다. Visual Studio 버전이나 설치 위치가 다르면 [build.bat](build.bat)의 `call` 경로를 설치된 `VC\Auxiliary\Build\vcvars64.bat` 경로로 바꾼다.
-
-저장소 폴더에서 PowerShell을 열고 실행한다.
-
-```powershell
-.\build.bat
-```
-
-마지막 줄에 `IME_PROBE_BUILD_OK`가 나오면 빌드가 끝난다. 게임에 사용할 파일은 **`build\windows_ime_fix.dll`**이다. 함께 생성되는 `ime_probe.dll`은 아래 시험 프로젝트에서 입력을 기록할 때 쓴다.
-
-### 2. 게임 프로젝트에 설치
-
-게임의 `project.godot`가 있는 폴더 아래에 `addons/windows_ime_fix/`를 만든다. 빌드한 `build/` 폴더에서 **`windows_ime_fix.dll`**과 **[`windows_ime_fix.gdextension`](windows_ime_fix.gdextension)** 두 파일을 그 안에 복사한다.
+1. [최신 릴리스의 Windows x86-64용 ZIP](https://github.com/aikusoni/gdext-windows-ime-fix/releases/latest/download/windows-ime-fix-x86_64.zip)을 내려받아 압축을 푼다.
+2. 압축을 푼 `addons` 폴더를 게임의 `project.godot` 옆에 복사한다. 이미 `addons`가 있으면 그 안에 `windows_ime_fix` 폴더만 복사한다.
+3. Godot 편집기에서 프로젝트를 다시 열면 확장을 자동으로 불러온다.
 
 ```text
 내 게임/
 ├── project.godot
 └── addons/windows_ime_fix/
     ├── windows_ime_fix.dll
-    └── windows_ime_fix.gdextension
+    ├── windows_ime_fix.gdextension
+    └── LICENSE
 ```
 
-Godot 편집기에서 프로젝트를 다시 열면 확장을 자동으로 불러온다. 게임 스크립트나 오토로드를 추가할 필요는 없다.
-
-### 3. 한글 입력 확인
+### 한글 입력 확인
 
 게임을 별도 창으로 실행하고 `LineEdit` 입력칸을 클릭한다. Windows의 새 Microsoft 한국어 입력기를 한글 모드로 전환한 뒤 **가나다 → 스페이스 → 한글 → Enter** 순서로 직접 입력한다. 마지막 음절까지 확정했을 때 기대하는 문자열은 **`가나다 한글`**이다.
 
@@ -65,14 +52,17 @@ Godot 호출은 진입점뿐이므로 생성 헤더와 godot-cpp가 필요 없�
 - `src/ime_fix.c`: 고침만 담은 확장. 아무것도 기록하지 않는다. 진입점은 `ime_fix_init`, 산출물은 `build/windows_ime_fix.dll`이다.
 - `src/ime_probe.c`: 시험용 확장. 메시지와 입력한 글자를 파일에 기록한다.
 - `project/`: 입력칸 하나로 된 시험 프로젝트. DLL이 없거나 Windows가 아니면 확장을 불러오지 않는다.
-- `build.bat`: Visual Studio 2019 Community의 C 컴파일러로 빌드한다. 다른 판은 파일 안의 경로를 수정한다.
+- `build.bat`: Visual C++의 x64 도구로 게임용 DLL과 시험용 DLL을 빌드한다.
 - `run_probe.bat`: 시험 창을 띄운다. 환경 변수 `GODOT_EXE`에 Godot 4.7 실행 파일 경로를 지정한다.
 
 ## 시험 프로젝트로 비교하기
 
-위 빌드를 마치면 `project/bin/ime_probe.dll`도 준비된다. 저장소 폴더의 PowerShell에서 아래 실행 파일 경로를 실제 Godot 4.7.2 경로로 바꾸고 두 모드를 차례로 실행한다. 각 창에서 같은 문구를 입력하고 창을 닫은 뒤 콘솔에서 키를 눌러 다음 실행으로 넘어간다.
+소스에서 빌드하려면 Visual Studio의 **C++를 사용한 데스크톱 개발** 워크로드와 Windows SDK를 설치한다. 기본 경로는 Visual Studio 2019 Community 기준이다. 다른 설치를 사용한다면 PowerShell의 `$env:VCVARS64`에 해당 설치의 `VC\Auxiliary\Build\vcvars64.bat` 전체 경로를 지정한다.
+
+저장소 폴더의 PowerShell에서 아래 실행 파일 경로를 실제 Godot 4.7.2 경로로 바꾸고 실행한다. 빌드 마지막 줄에 `IME_PROBE_BUILD_OK`가 나오면 두 DLL이 준비된 것이다. 각 창에서 같은 문구를 입력하고 창을 닫은 뒤 콘솔에서 키를 눌러 다음 실행으로 넘어간다.
 
 ```powershell
+.\build.bat
 $env:GODOT_EXE = 'C:\Tools\Godot\Godot.exe'
 $env:IME_PROBE_MODE = 'observe'
 .\run_probe.bat

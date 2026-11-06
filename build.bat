@@ -1,7 +1,8 @@
 @echo off
-rem Builds the probe with the C compiler Visual Studio 2019 already has. Nothing is downloaded.
+rem Build both extensions with the x64 Visual C++ toolchain.
 setlocal
-call "C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat" >nul || exit /b 1
+if not defined VCVARS64 set "VCVARS64=C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvars64.bat"
+call "%VCVARS64%" >nul || exit /b 1
 cd /d "%~dp0"
 if not exist build mkdir build
 if not exist project\bin mkdir project\bin

@@ -1,0 +1,46 @@
+name: Release Windows extension
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Build Windows x86-64 DLL
+        shell: pwsh
+        run: |
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+          $env:VCVARS64 = & $vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -find 'VC\Auxiliary\Build\vcvars64.bat'
+          if (-not $env:VCVARS64) { throw 'Visual C++ x64 tools not found' }
+          .\build.bat
+
+      - name: Package and verify the add-on
+        shell: pwsh
+        run: |
+          $addon = New-Item -ItemType Directory -Path build/package/addons/windows_ime_fix -Force
+          Copy-Item build/windows_ime_fix.dll, build/windows_ime_fix.gdextension, LICENSE -Destination $addon
+          Compress-Archive -Path build/package/addons -DestinationPath build/windows-ime-fix-x86_64.zip
+          Expand-Archive build/windows-ime-fix-x86_64.zip -DestinationPath build/check
+          Set-Location build/check/addons/windows_ime_fix
+          if (-not (Test-Path LICENSE)) { throw 'License missing from ZIP' }
+          if (-not (Select-String -Quiet -SimpleMatch -Pattern './windows_ime_fix.dll' -Path windows_ime_fix.gdextension)) {
+            throw 'Extension descriptor does not point to the packaged DLL'
+          }
+          python -c "import ctypes, pathlib; print(ctypes.WinDLL(str(pathlib.Path('windows_ime_fix.dll').resolve())).ime_fix_init)"
+
+      - name: Publish ZIP to GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: pwsh
+        run: |
+          gh release create $env:GITHUB_REF_NAME build/windows-ime-fix-x86_64.zip --verify-tag --title "Windows IME Fix $env:GITHUB_REF_NAME" --notes "Windows x86-64용 Godot 확장입니다. ZIP을 풀고 addons 폴더를 게임의 project.godot 옆에 복사한 뒤 프로젝트를 다시 여세요."
